@@ -17,14 +17,34 @@ def parse_json(path):
 
 def parse_xml(path):
     raw = path.read_text(encoding="utf-8")
+    raw = remove_mesh_blocks(raw)
     root = ET.fromstring(raw)
     return root
+
+def parse_unknown(path):
+    raw = path.read_text(encoding="utf-8")
+
+    # Try JSON first
+    try:
+        data = json.loads(raw)
+        return json.dumps(data, indent=4)
+    except json.JSONDecodeError:
+        pass
+
+    # Try XML
+    try:
+        root = ET.fromstring(raw)
+        return ET.tostring(root, encoding="unicode")
+    except ET.ParseError:
+        pass
+
+    return raw  # fallback: plain text 
 
 PARSERS = {
     ".json": parse_json,
     ".xml": parse_xml,
     ".model": parse_xml,
-    ".config": parse_xml,
+    ".config": parse_unknown,
     ".rels": parse_xml,
 }
 
@@ -95,7 +115,7 @@ def pretty_xml(xml_string):
 def remove_mesh_blocks(xml_string):
     # Remove <mesh>...</mesh> blocks using regex
     pattern = re.compile(r"<mesh>.*?</mesh>", re.DOTALL)
-    return pattern.sub("<mesh>... (content removed) ...</mesh>", xml_string)
+    return pattern.sub("<mesh>... (content hidden) ...</mesh>", xml_string)
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
