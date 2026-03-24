@@ -2,3 +2,4 @@
 extracted
 *.zip
 *.pyc
+__pycache__
