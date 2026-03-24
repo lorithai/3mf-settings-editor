@@ -5,6 +5,8 @@ from pathlib import Path
 from xml.dom import minidom
 import json
 import xml.etree.ElementTree as ET
+import re
+
 
 #%%
 
@@ -37,8 +39,10 @@ def parse_file(path: Path):
     try:
         if path.suffix == ".json":
             return json.loads(path.read_text(encoding="utf-8"))
+        elif path.suffix == ".model":
+            return remove_mesh_blocks(path.read_text(encoding="utf-8"))
 
-        elif path.suffix in [".xml", ".rels", ".model", ".config"]:
+        elif path.suffix in [".xml", ".rels", ".config"]:
             return pretty_xml(path.read_text(encoding="utf-8"))
 
         else:
@@ -51,6 +55,11 @@ def parse_file(path: Path):
 def pretty_xml(xml_string):
     dom = minidom.parseString(xml_string)
     return dom.toprettyxml(indent="  ")
+
+def remove_mesh_blocks(xml_string):
+    # Remove <mesh>...</mesh> blocks using regex
+    pattern = re.compile(r"<mesh>.*?</mesh>", re.DOTALL)
+    return pattern.sub("<mesh>... (content removed) ...</mesh>", xml_string)
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
