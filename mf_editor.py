@@ -1,5 +1,5 @@
 #%%
-from mf_read_utils import build_tree, parse_file
+from mf_read_utils import build_tree, parse_file,object_to_string
 import zipfile
 import os
 import sys
@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 
 
 #%%
+
 
 class FileViewer(QWidget):
     def __init__(self, root_path):
@@ -59,9 +60,10 @@ class FileViewer(QWidget):
         if path.is_file():
             if path.suffix in [".json", ".xml", ".rels", ".model", ".config"] or name.endswith(".rels"):
                 content = parse_file(path)
-                self.viewer.setText(content)
+                self.viewer.setText(object_to_string(content))
             else:
                 self.viewer.setText("Not a supported settings file")
+
 
 #%%
 # ---------- Run ----------

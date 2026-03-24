@@ -11,6 +11,31 @@ import re
 #%%
 
 VALID_EXT = {".json", ".xml", ".rels", ".model", ".config"}
+
+def parse_json(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+def parse_xml(path):
+    raw = path.read_text(encoding="utf-8")
+    root = ET.fromstring(raw)
+    return root
+
+PARSERS = {
+    ".json": parse_json,
+    ".xml": parse_xml,
+    ".model": parse_xml,
+    ".config": parse_xml,
+    ".rels": parse_xml,
+}
+
+def object_to_string(obj):
+    if isinstance(obj, ET.Element):
+        return ET.tostring(obj, encoding="unicode")
+    elif isinstance(obj, dict) or isinstance(obj, list):
+        return json.dumps(obj, indent=2)
+    else:
+        return str(obj)
+
 #%% open and extract 3mf file to a folder
 
 def build_tree(path: Path):
@@ -34,21 +59,33 @@ def build_tree(path: Path):
     return node
 #%% parse files based on extension
 def parse_file(path: Path):
-    try:
-        name = path.name.lower()
-        if path.suffix == ".json":
-            return path.read_text(encoding="utf-8")
-        elif path.suffix == ".model":
-            return remove_mesh_blocks(path.read_text(encoding="utf-8"))
-        elif path.suffix in [".xml", ".config"]:
-            return pretty_xml(path.read_text(encoding="utf-8"))
-        elif path.suffix == ".rels" or name.endswith(".rels"): # some .rels files are just called .rels
-            return path.read_text(encoding="utf-8")
-        else:
-            return None
+    
+    suffix = path.suffix.lower()
+    name = path.name.lower()
+    print(suffix,suffix is None,len(suffix))
+    if len(suffix) == 0 and path.name.lower().startswith("."):
+        suffix = name
+    parser = PARSERS.get(suffix)
+    
+    if parser:
+        try:
+            return parser(path)
+        except Exception as e:
+            return {"error": f"Failed to parse {path.name}: {str(e)}"}
+    else:
+        return {"error": f"Unsupported file type: {suffix}"}
 
-    except Exception as e:
-        return {"error": str(e)}
+    if path.suffix == ".json":
+        return path.read_text(encoding="utf-8")
+    elif path.suffix == ".model":
+        return remove_mesh_blocks(path.read_text(encoding="utf-8"))
+    elif path.suffix in [".xml", ".config"]:
+        return pretty_xml(path.read_text(encoding="utf-8"))
+    elif path.suffix == ".rels" or name.endswith(".rels"): # some .rels files are just called .rels
+        return path.read_text(encoding="utf-8")
+    else:
+        return None
+
 
 # ---------- Pretty Print XML ----------
 def pretty_xml(xml_string):
