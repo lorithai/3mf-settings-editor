@@ -1,12 +1,3 @@
-# 3MF Settings Editor - Requirements
-# No external packages required!
-# 
-# The application uses only Python standard library:
-# - tkinter (GUI framework)
-# - zipfile (3MF file handling)  
-# - xml.etree.ElementTree (XML parsing)
-# - pathlib (file path operations)
-# - shutil (file operations)
-# - os (operating system operations)
-#
+PySide6==6.11.0
+
 
