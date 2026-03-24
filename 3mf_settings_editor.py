@@ -111,26 +111,40 @@ class ThreeMFSettingsEditor:
             self.current_file = file_path
             self.file_label.config(text=f"File: {Path(file_path).name}", foreground="black")
             
-            # Extract all files and their settings
+            # Extract all files and their settings from any folder in the archive
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
                 self.all_files_in_archive = {}
+                # Iterate through ALL files in the archive regardless of folder
                 for file_in_archive in zip_ref.namelist():
-                    # Extract settings for each file
+                    # Extract settings based on file extension (not folder location)
                     try:
-                        if file_in_archive.endswith(('.config', '.model', '.xml')):
+                        if file_in_archive.endswith('.config'):
                             with zip_ref.open(file_in_archive) as fh:
-                                if file_in_archive.endswith('.config'):
-                                    content = fh.read().decode('utf-8', errors='ignore')
-                                    settings = self.parse_config_file(content, file_in_archive)
-                                elif file_in_archive.endswith('.model') or file_in_archive.endswith('.xml'):
+                                content = fh.read().decode('utf-8', errors='ignore')
+                                settings = self.parse_config_file(content, file_in_archive)
+                                if settings:
+                                    self.all_files_in_archive[file_in_archive] = settings
+                        
+                        elif file_in_archive.endswith(('.model', '.xml', '.rels')):
+                            with zip_ref.open(file_in_archive) as fh:
+                                try:
                                     tree = ET.parse(fh)
                                     root = tree.getroot()
                                     settings = self.extract_all_settings(root, file_in_archive)
-                                else:
-                                    settings = {}
-                                
-                                if settings:
-                                    self.all_files_in_archive[file_in_archive] = settings
+                                    if settings:
+                                        self.all_files_in_archive[file_in_archive] = settings
+                                except ET.ParseError:
+                                    pass
+                        
+                        elif file_in_archive.endswith('.json'):
+                            with zip_ref.open(file_in_archive) as fh:
+                                try:
+                                    content = json.load(fh)
+                                    settings = self.parse_json_settings(content, file_in_archive)
+                                    if settings:
+                                        self.all_files_in_archive[file_in_archive] = settings
+                                except (json.JSONDecodeError, UnicodeDecodeError):
+                                    pass
                     except Exception as e:
                         pass  # Skip files that can't be parsed
             
