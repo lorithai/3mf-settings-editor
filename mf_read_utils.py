@@ -33,18 +33,17 @@ def build_tree(path: Path):
             })
     return node
 #%% parse files based on extension
-
-#%%
 def parse_file(path: Path):
     try:
+        name = path.name.lower()
         if path.suffix == ".json":
-            return json.loads(path.read_text(encoding="utf-8"))
+            return path.read_text(encoding="utf-8")
         elif path.suffix == ".model":
             return remove_mesh_blocks(path.read_text(encoding="utf-8"))
-
-        elif path.suffix in [".xml", ".rels", ".config"]:
+        elif path.suffix in [".xml", ".config"]:
             return pretty_xml(path.read_text(encoding="utf-8"))
-
+        elif path.suffix == ".rels" or name.endswith(".rels"): # some .rels files are just called .rels
+            return path.read_text(encoding="utf-8")
         else:
             return None
 

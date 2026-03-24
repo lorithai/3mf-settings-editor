@@ -55,11 +55,10 @@ class FileViewer(QWidget):
     # ---------- Handle Click ----------
     def on_item_clicked(self, item):
         path = Path(item.data(0, Qt.UserRole))
+        name = path.name.lower()
         if path.is_file():
-            print("File clicked:", path)
-            if path.suffix in [".json", ".xml", ".rels", ".model", ".config"]:
+            if path.suffix in [".json", ".xml", ".rels", ".model", ".config"] or name.endswith(".rels"):
                 content = parse_file(path)
-                print("Parsed content:", content,type(content))
                 self.viewer.setText(content)
             else:
                 self.viewer.setText("Not a supported settings file")
