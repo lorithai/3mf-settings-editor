@@ -2,17 +2,38 @@
 import zipfile
 import os
 import shutil
+from pathlib import Path
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
-#%%
+#%% open and extract 3mf file to a folder
 input_file = os.path.join(base_dir, "Baby_Dragon_Multicolor_FF_P1P_X1C.3mf")
 output_path = os.path.join(base_dir, "extracted")
 with zipfile.ZipFile(input_file, 'r') as zin:
     zin.extractall(output_path)
     print("output_path:", output_path)
 
+def build_tree(path: Path):
+    tree = {}
+    for item in path.iterdir():
+        if item.is_dir():
+            tree[item.name] = build_tree(item)
+        else:
+            tree[item.name] = None  # or store metadata here
 
+    return tree
+
+def print_tree(tree, indent=0):
+    for name, value in tree.items():
+        print("  " * indent + name)
+        if isinstance(value, dict):
+            print_tree(value, indent + 1)
+
+tree = build_tree(Path(output_path))
+print_tree(tree)
+
+
+#%%
 for root, dirs, files in os.walk(output_path, topdown=True):
     print("dirs:", dirs, "files:", files)
     for name in files:
