@@ -14,14 +14,25 @@ with zipfile.ZipFile(input_file, 'r') as zin:
     print("output_path:", output_path)
 
 def build_tree(path: Path):
-    tree = {}
-    for item in path.iterdir():
-        if item.is_dir():
-            tree[item.name] = build_tree(item)
-        else:
-            tree[item.name] = None  # or store metadata here
+    node = {
+        "type": "folder",
+        "name": path.name,
+        "path": str(path),
+        "children": []
+    }
 
-    return tree
+    for item in sorted(path.iterdir()):
+        if item.is_dir():
+            node["children"].append(build_tree(item))
+        else:
+            node["children"].append({
+                "type": "file",
+                "name": item.name,
+                "path": str(item),
+                "parsed": None  # will hold parsed content later
+            })
+    
+    return node
 
 def print_tree(tree, indent=0):
     for name, value in tree.items():
