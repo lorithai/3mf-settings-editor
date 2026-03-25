@@ -23,21 +23,23 @@ def parse_xml(path):
 
 def parse_unknown(path):
     raw = path.read_text(encoding="utf-8")
-
+    print(f"Trying to parse {path.name} with unknown extension...")
     # Try JSON first
     try:
         data = json.loads(raw)
-        return json.dumps(data, indent=4)
+        print(f"Parsed {path.name} as JSON")
+        return data
     except json.JSONDecodeError:
         pass
 
     # Try XML
     try:
         root = ET.fromstring(raw)
-        return ET.tostring(root, encoding="unicode")
+        print(f"Parsed {path.name} as XML")
+        return root
     except ET.ParseError:
         pass
-
+    
     return raw  # fallback: plain text 
 
 PARSERS = {
@@ -82,7 +84,7 @@ def parse_file(path: Path):
     
     suffix = path.suffix.lower()
     name = path.name.lower()
-    print(suffix,suffix is None,len(suffix))
+
     if len(suffix) == 0 and path.name.lower().startswith("."):
         suffix = name
     parser = PARSERS.get(suffix)

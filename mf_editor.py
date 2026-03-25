@@ -4,8 +4,7 @@ import zipfile
 import os
 import sys
 from pathlib import Path
-
-
+from xml.etree.ElementTree import Element
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QHBoxLayout, QTreeWidget, QTreeWidgetItem, QTextEdit
@@ -16,12 +15,52 @@ from PySide6.QtCore import Qt
 #%%
 
 
+def add_tree_items(parent, data):
+    if isinstance(data, dict):
+        for key, value in data.items():
+            item = QTreeWidgetItem([str(key), ""])
+            parent.addChild(item)
+            add_tree_items(item, value)
+
+    elif isinstance(data, list):
+        for i, value in enumerate(data):
+            item = QTreeWidgetItem([f"[{i}]", ""])
+            parent.addChild(item)
+            add_tree_items(item, value)
+
+    elif isinstance(data, Element):
+        # XML element
+        item = QTreeWidgetItem([data.tag, ""])
+        parent.addChild(item)
+
+        # attributes
+        for k, v in data.attrib.items():
+            attr_item = QTreeWidgetItem([f"@{k}", v])
+            item.addChild(attr_item)
+
+        # children
+        for child in data:
+            add_tree_items(item, child)
+
+        # text
+        if data.text and data.text.strip():
+            text_item = QTreeWidgetItem(["#text", data.text.strip()])
+            item.addChild(text_item)
+
+    else:
+        # primitive value
+        item = QTreeWidgetItem(["", str(data)])
+        parent.addChild(item)
+
+
+
 class FileViewer(QWidget):
     def __init__(self, root_path):
         super().__init__()
 
         self.setWindowTitle("File Tree Viewer")
         self.resize(900, 600)
+        self.cache = {}  # path -> parsed content
 
         layout = QHBoxLayout(self)
 
@@ -30,8 +69,8 @@ class FileViewer(QWidget):
         self.tree.setHeaderLabel("Files")
 
         # Right: Content
-        self.viewer = QTextEdit()
-        self.viewer.setReadOnly(True)
+        self.viewer = QTreeWidget()
+        self.viewer.setHeaderLabels(["Key", "Value"])
 
         layout.addWidget(self.tree, 1)
         layout.addWidget(self.viewer, 2)
@@ -54,15 +93,27 @@ class FileViewer(QWidget):
                 self.populate_tree(item, tree_item)
 
     # ---------- Handle Click ----------
+
     def on_item_clicked(self, item):
-        path = Path(item.data(0, Qt.UserRole))
-        name = path.name.lower()
-        if path.is_file():
-            if path.suffix in [".json", ".xml", ".rels", ".model", ".config"] or name.endswith(".rels"):
-                content = parse_file(path)
-                self.viewer.setText(object_to_string(content))
+        data = item.data(0, Qt.UserRole)
+        
+        if not data:
+            return
+
+        if Path(data).is_file():
+            if data in self.cache:
+                parsed = self.cache[data]
             else:
-                self.viewer.setText("Not a supported settings file")
+                parsed = parse_file(Path(data))
+                self.cache[data] = parsed
+            self.viewer.clear()
+
+            root_item = QTreeWidgetItem(self.viewer, ["root", ""])
+            
+            add_tree_items(root_item, parsed)
+
+            self.viewer.expandToDepth(2)
+
 
 
 #%%
